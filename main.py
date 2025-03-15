@@ -78,9 +78,7 @@ async def run_bot():
         logger.info("Starting bot polling...")
         await application.run_polling(
             allowed_updates=["message", "callback_query"],
-            drop_pending_updates=True,
-            close_loop=False,
-            handle_signals=False  # Disable internal signal handling
+            drop_pending_updates=True
         )
     except Exception as e:
         logger.error(f"Failed to start bot: {e}", exc_info=True)
