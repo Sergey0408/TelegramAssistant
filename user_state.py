@@ -10,6 +10,7 @@ class GameState:
     errors: int
     current_question: Optional[Tuple[int, int]]
     last_error: Optional[Tuple[int, int]]
+    partial_answer: Optional[str] = None  # Store partial answer for two-digit numbers
 
 class UserState:
     _states: Dict[int, GameState] = {}
@@ -23,7 +24,8 @@ class UserState:
             correct_answers=0,
             errors=0,
             current_question=None,
-            last_error=None
+            last_error=None,
+            partial_answer=None
         )
 
     @classmethod

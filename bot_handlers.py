@@ -59,18 +59,21 @@ async def multiply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle button presses."""
     query = update.callback_query
-    await query.answer()
+    await query.answer()  # Acknowledge the button press
     logger.info(f"User {query.from_user.id} pressed button with data: {query.data}")
 
     if query.data.startswith('level_'):
         level = query.data.split('_')[1]
+        logger.debug(f"Starting new game with level: {level}")
         UserState.start_new_game(query.from_user.id, level)
         await show_next_question(query)
     elif query.data == 'continue':
+        logger.debug("User pressed continue, showing next question")
         await show_next_question(query)
     elif query.data.isdigit():  # Handle numeric buttons
         user_id = query.from_user.id
         game_state = UserState.get_user_state(user_id)
+        logger.debug(f"User {user_id} pressed digit: {query.data}")
 
         if not game_state or not game_state.current_question:
             logger.warning(f"User {user_id} tried to answer without active game")
@@ -78,9 +81,32 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         try:
-            user_answer = int(query.data)
+            current_digit = query.data
+            logger.debug(f"Processing digit input: {current_digit}")
+
             num1, num2 = game_state.current_question
             correct_answer = num1 * num2
+            logger.debug(f"Current question: {num1} x {num2} = {correct_answer}")
+            logger.debug(f"Partial answer state: {game_state.partial_answer}")
+
+            # If this is the first digit
+            if game_state.partial_answer is None:
+                if correct_answer < 10:  # Single digit answer
+                    user_answer = int(current_digit)
+                    logger.debug(f"Processing single digit answer: {user_answer}")
+                else:  # Start collecting digits for two-digit answer
+                    game_state.partial_answer = current_digit
+                    logger.debug(f"Started collecting digits: {game_state.partial_answer}")
+                    await query.edit_message_text(
+                        f"Введите вторую цифру ответа\n{num1} x {num2} = {current_digit}...",
+                        reply_markup=InlineKeyboardMarkup(create_number_keyboard())
+                    )
+                    return
+            else:  # This is the second digit
+                user_answer = int(game_state.partial_answer + current_digit)
+                logger.debug(f"Completed two-digit answer: {user_answer}")
+                game_state.partial_answer = None  # Reset for next question
+
             logger.info(f"User {user_id} answered {user_answer} to {num1} x {num2}")
 
             if user_answer == correct_answer:
@@ -105,8 +131,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     reply_markup=reply_markup
                 )
 
-        except ValueError:
-            logger.warning(f"User {user_id} entered invalid input: {query.data}")
+        except ValueError as e:
+            logger.error(f"Error processing answer for user {user_id}: {e}")
             await query.edit_message_text("Пожалуйста, введите число")
 
 async def show_next_question(query):
@@ -122,10 +148,14 @@ async def show_next_question(query):
     if game_state.correct_answers >= 10:
         time_taken = time.time() - game_state.start_time
         logger.info(f"User {user_id} completed the game with {game_state.errors} errors in {int(time_taken)} seconds")
+        reply_markup = InlineKeyboardMarkup([[
+            InlineKeyboardButton("Начать новую игру", callback_data='continue')
+        ]])
         await query.edit_message_text(
             f"🎉 Поздравляем! Вы завершили тренировку!\n"
             f"⏱ Затраченное время: {int(time_taken)} секунд\n"
-            f"❌ Количество ошибок: {game_state.errors}"
+            f"❌ Количество ошибок: {game_state.errors}",
+            reply_markup=reply_markup
         )
         UserState.clear_user_state(user_id)
         return
@@ -137,9 +167,10 @@ async def show_next_question(query):
         game_state.last_error = None  # Clear the error after setting it as current question
         logger.info(f"Repeating error question for user {user_id}: {num1} x {num2}")
         keyboard = create_number_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(
-            f"Давай повторим сложный пример:\n{num1} x {num2} = ?",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            f"Давай повторим сложный пример:\n{num1} x {num2}=",
+            reply_markup=reply_markup
         )
         return
 
@@ -150,7 +181,7 @@ async def show_next_question(query):
 
     keyboard = create_number_keyboard()
     await query.edit_message_text(
-        f"Сколько будет {num1} x {num2}?",
+        f"Сколько будет {num1} x {num2}=",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
