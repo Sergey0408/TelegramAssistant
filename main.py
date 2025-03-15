@@ -76,31 +76,40 @@ async def run_bot():
 
         # Start the Bot using run_polling() method
         logger.info("Starting bot polling...")
-        await application.run_polling(allowed_updates=["message", "callback_query"])
+        await application.run_polling(
+            allowed_updates=["message", "callback_query"],
+            drop_pending_updates=True,
+            close_loop=False,
+            handle_signals=False  # Disable internal signal handling
+        )
     except Exception as e:
         logger.error(f"Failed to start bot: {e}", exc_info=True)
         raise
 
-def start_bot():
-    """Start the bot in a separate thread."""
+def run_flask():
+    """Run Flask in a separate thread."""
+    # Use configurable port with default to 8080
+    PORT = int(os.environ.get("PORT", "8080"))
+    logger.info(f"Starting Flask application on port {PORT}")
+    # Run Flask without debug mode and reloader to avoid multiple bot instances
+    app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
+
+if __name__ == '__main__':
     try:
-        # Apply nest_asyncio to allow nested event loops
+        # Register signal handlers in the main thread
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        # Start Flask in a separate thread
+        flask_thread = Thread(target=run_flask)
+        flask_thread.daemon = True
+        flask_thread.start()
+
+        # Apply nest_asyncio and run bot in main thread
         nest_asyncio.apply()
         logger.info("Starting bot application...")
         asyncio.run(run_bot())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
     except Exception as e:
         logger.error(f"Bot stopped due to error: {e}", exc_info=True)
-
-# Register signal handlers in the main thread
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
-
-# Start bot in a separate thread when not in reloader or gunicorn worker
-if not os.environ.get('WERKZEUG_RUN_MAIN') and not os.environ.get('GUNICORN_WORKER'):
-    bot_thread = Thread(target=start_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-
-if __name__ == '__main__':
-    # Run Flask without debug mode to avoid multiple bot instances
-    app.run(host='0.0.0.0', port=5000, debug=False)
