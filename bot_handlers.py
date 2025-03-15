@@ -125,24 +125,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await play_sound("correct")
                 game_state.correct_answers += 1
                 remaining_examples = 10 - game_state.correct_answers
-                keyboard = create_number_keyboard()
+                keyboard = [[InlineKeyboardButton("Продолжить", callback_data='continue')]]
                 await query.edit_message_text(
                     f"{status_text}\n\n✅ Правильно! Молодец!",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                # Показываем следующий вопрос без нажатия "Продолжить"
-                await show_next_question(query)
             else:
                 await play_sound("wrong")
                 game_state.errors += 1
                 game_state.last_error = (num1, num2)
-                keyboard = create_number_keyboard()
+                keyboard = [[InlineKeyboardButton("Продолжить", callback_data='continue')]]
                 await query.edit_message_text(
                     f"{status_text}\n\n❌ Ошибка!\nЗапомни правильный ответ:\n{num1} x {num2} = {correct_answer}",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
-                # Показываем следующий вопрос без нажатия "Продолжить"
-                await show_next_question(query)
 
         except ValueError as e:
             logger.error(f"Error processing answer for user {user_id}: {e}")
