@@ -45,12 +45,12 @@ async def run_bot():
         token = "7606023414:AAE28ed3M7FRBz_kV0fwbN-gsdAef0Xfw4U"
         logger.info("Initializing bot with token...")
 
-        # Build application with clean start
+        # Build application
         application = ApplicationBuilder().token(token).build()
 
         # First, delete any existing webhook
         logger.info("Removing existing webhook...")
-        await application.bot.delete_webhook(drop_pending_updates=True)
+        await application.bot.delete_webhook()
 
         # Add handlers
         logger.info("Registering command handlers...")
@@ -95,17 +95,12 @@ def start_bot():
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
-# Start bot in a separate thread when running with gunicorn
-if not os.environ.get('WERKZEUG_RUN_MAIN'):
+# Start bot in a separate thread when not in reloader or gunicorn worker
+if not os.environ.get('WERKZEUG_RUN_MAIN') and not os.environ.get('GUNICORN_WORKER'):
     bot_thread = Thread(target=start_bot)
     bot_thread.daemon = True
     bot_thread.start()
 
-# Only run Flask development server when running directly
 if __name__ == '__main__':
-    bot_thread = Thread(target=start_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-
-    # Run Flask in debug mode when running directly
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Run Flask without debug mode to avoid multiple bot instances
+    app.run(host='0.0.0.0', port=5000, debug=False)
