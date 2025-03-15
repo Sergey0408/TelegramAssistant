@@ -2,15 +2,25 @@ import logging
 import os
 import signal
 import nest_asyncio
+from flask import Flask
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler
+import asyncio
+from threading import Thread
 
 from bot_handlers import start, help_command, multiply, button_handler, handle_number_input
 from user_state import UserState
 
+# Create Flask app
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return 'Telegram Bot is running!'
+
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG  # Changed to DEBUG for more detailed logs
+    level=logging.DEBUG
 )
 
 logger = logging.getLogger(__name__)
@@ -26,13 +36,9 @@ def signal_handler(signum, frame):
             logger.error(f"Error during cleanup: {e}", exc_info=True)
     logger.info("Cleanup complete")
 
-async def main():
+async def run_bot():
     """Start the bot."""
     global application
-
-    # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
 
     try:
         # Create the Application
@@ -68,21 +74,38 @@ async def main():
 
         application.add_error_handler(error_handler)
 
-        # Start the Bot using run_polling() method directly
+        # Start the Bot using run_polling() method
         logger.info("Starting bot polling...")
-        await application.run_polling(allowed_updates=["message", "callback_query"], drop_pending_updates=True)
+        await application.run_polling(allowed_updates=["message", "callback_query"])
     except Exception as e:
         logger.error(f"Failed to start bot: {e}", exc_info=True)
         raise
 
-if __name__ == '__main__':
-    import asyncio
+def start_bot():
+    """Start the bot in a separate thread."""
     try:
         # Apply nest_asyncio to allow nested event loops
         nest_asyncio.apply()
         logger.info("Starting bot application...")
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user")
+        asyncio.run(run_bot())
     except Exception as e:
         logger.error(f"Bot stopped due to error: {e}", exc_info=True)
+
+# Register signal handlers in the main thread
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
+
+# Start bot in a separate thread when running with gunicorn
+if not os.environ.get('WERKZEUG_RUN_MAIN'):
+    bot_thread = Thread(target=start_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+
+# Only run Flask development server when running directly
+if __name__ == '__main__':
+    bot_thread = Thread(target=start_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+
+    # Run Flask in debug mode when running directly
+    app.run(host='0.0.0.0', port=5000, debug=True)
