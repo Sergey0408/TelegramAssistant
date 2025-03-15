@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+import nest_asyncio
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
 from bot_handlers import start, help_command, multiply, button_handler, handle_number_input
@@ -67,26 +68,18 @@ async def main():
 
         application.add_error_handler(error_handler)
 
-        # Start the Bot using run_polling() method
+        # Start the Bot using run_polling() method directly
         logger.info("Starting bot polling...")
-        await application.initialize()
-        await application.start()
         await application.run_polling(allowed_updates=["message", "callback_query"], drop_pending_updates=True)
     except Exception as e:
         logger.error(f"Failed to start bot: {e}", exc_info=True)
         raise
-    finally:
-        logger.info("Bot shutdown initiated")
-        if application:
-            try:
-                await application.stop()
-            except Exception as e:
-                logger.error(f"Error during shutdown: {e}", exc_info=True)
-        logger.info("Bot shutdown complete")
 
 if __name__ == '__main__':
     import asyncio
     try:
+        # Apply nest_asyncio to allow nested event loops
+        nest_asyncio.apply()
         logger.info("Starting bot application...")
         asyncio.run(main())
     except KeyboardInterrupt:

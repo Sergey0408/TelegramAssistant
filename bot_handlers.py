@@ -11,17 +11,25 @@ logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /start is issued."""
-    logger.info(f"User {update.effective_user.id} started the bot")
+    user_id = update.effective_user.id
+    logger.debug(f"Start command received from user {user_id}")
+    logger.info(f"User {user_id} started the bot")
+
     welcome_message = (
         "👋 Привет! Я бот для изучения таблицы умножения.\n\n"
         "🎯 Используйте команду /multiply чтобы начать тренировку.\n"
         "❓ Используйте /help для получения справки."
     )
+    logger.debug(f"Sending welcome message to user {user_id}")
     await update.message.reply_text(welcome_message)
+    logger.info(f"Welcome message sent to user {user_id}")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message when the command /help is issued."""
-    logger.info(f"User {update.effective_user.id} requested help")
+    user_id = update.effective_user.id
+    logger.debug(f"Help command received from user {user_id}")
+    logger.info(f"User {user_id} requested help")
+
     help_text = (
         "📖 Как пользоваться ботом:\n\n"
         "1. Нажмите /multiply чтобы начать\n"
@@ -30,16 +38,23 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "4. После 10 правильных ответов вы увидите свою статистику\n\n"
         "🎮 Удачи в обучении!"
     )
+    logger.debug(f"Sending help text to user {user_id}")
     await update.message.reply_text(help_text)
+    logger.info(f"Help text sent to user {user_id}")
 
 async def multiply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Start multiplication game."""
-    logger.info(f"User {update.effective_user.id} started multiplication game")
+    user_id = update.effective_user.id
+    logger.debug(f"Multiply command received from user {user_id}")
+    logger.info(f"User {user_id} started multiplication game")
+
     keyboard = create_difficulty_keyboard()
+    logger.debug(f"Created difficulty keyboard for user {user_id}")
     await update.message.reply_text(
         "Выберите уровень сложности:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+    logger.info(f"Difficulty selection sent to user {user_id}")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle button presses."""
