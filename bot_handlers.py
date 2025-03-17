@@ -122,18 +122,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await play_sound("correct")
                 game_state.correct_answers += 1
                 remaining_examples = 10 - game_state.correct_answers
-                keyboard = create_number_keyboard()
+                keyboard = [[InlineKeyboardButton("Продолжить", callback_data='continue')]]
                 await query.edit_message_text(
-                    f"{status_text}\n\n✅ Правильно! Молодец!\nНажмите любую цифру для продолжения",
+                    f"{status_text}\n\n✅ Правильно! Молодец!",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
             else:
                 await play_sound("wrong")
                 game_state.errors += 1
                 game_state.last_error = (num1, num2)
-                keyboard = create_number_keyboard()
+                keyboard = [[InlineKeyboardButton("Продолжить", callback_data='continue')]]
                 await query.edit_message_text(
-                    f"{status_text}\n\n❌ Ошибка!\nПравильный ответ: {num1} x {num2} = {correct_answer}\nНажмите любую цифру для продолжения",
+                    f"{status_text}\n\n❌ Ошибка!\nПравильный ответ: {num1} x {num2} = {correct_answer}",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
 
@@ -195,48 +195,3 @@ async def show_next_question(query):
         f"{status_text}\n\nСколько будет {num1} x {num2}=",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-async def handle_number_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle numeric input from user."""
-    user_id = update.message.from_user.id
-    game_state = UserState.get_user_state(user_id)
-
-    if not game_state or not game_state.current_question:
-        logger.warning(f"User {user_id} tried to answer without active game")
-        await update.message.reply_text("Пожалуйста, начните игру с команды /multiply")
-        return
-
-    try:
-        user_answer = int(update.message.text)
-        num1, num2 = game_state.current_question
-        correct_answer = num1 * num2
-        logger.info(f"User {user_id} answered {user_answer} to {num1} x {num2}")
-
-        if user_answer == correct_answer:
-            await play_sound("correct")
-            game_state.correct_answers += 1
-            reply_markup = InlineKeyboardMarkup([[
-                InlineKeyboardButton("Продолжить", callback_data='continue')
-            ]])
-            await update.message.reply_text(
-                "✅ Правильно! Молодец!",
-                reply_markup=reply_markup
-            )
-        else:
-            await play_sound("wrong")
-            game_state.errors += 1
-            game_state.last_error = (num1, num2)
-            await update.message.reply_text(
-                f"❌ Ошибка!\nЗапомни правильный ответ:\n{num1} x {num2} = {correct_answer}"
-            )
-            reply_markup = InlineKeyboardMarkup([[
-                InlineKeyboardButton("Продолжить", callback_data='continue')
-            ]])
-            await update.message.reply_text(
-                "Попробуем следующий пример",
-                reply_markup=reply_markup
-            )
-
-    except ValueError:
-        logger.warning(f"User {user_id} entered invalid input: {update.message.text}")
-        await update.message.reply_text("Пожалуйста, введите число")

@@ -7,7 +7,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import asyncio
 from threading import Thread
 
-from bot_handlers import start, help_command, multiply, button_handler, handle_number_input
+from bot_handlers import start, help_command, multiply, button_handler
 from user_state import UserState
 
 # Create Flask app
@@ -42,7 +42,7 @@ async def run_bot():
 
     try:
         # Create the Application
-        token = "7606023414:AAE28ed3M7FRBz_kV0fwbN-gsdAef0Xfw4U"
+        token = os.environ.get("TELEGRAM_BOT_TOKEN", "7606023414:AAE28ed3M7FRBz_kV0fwbN-gsdAef0Xfw4U")
         logger.info("Initializing bot with token...")
 
         # Build application
@@ -58,7 +58,6 @@ async def run_bot():
         application.add_handler(CommandHandler("help", help_command))
         application.add_handler(CommandHandler("multiply", multiply))
         application.add_handler(CallbackQueryHandler(button_handler))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_number_input))
 
         # Error handler
         async def error_handler(update, context):
