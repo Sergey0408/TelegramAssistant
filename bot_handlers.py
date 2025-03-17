@@ -78,6 +78,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     elif query.data.isdigit():  # Handle numeric buttons
+        # Add button click sound
+        await play_sound("button")
         user_id = query.from_user.id
         game_state = UserState.get_user_state(user_id)
         logger.debug(f"User {user_id} pressed digit: {query.data}")
@@ -96,9 +98,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             time_spent = int(time.time() - game_state.start_time)
             remaining_examples = 10 - game_state.correct_answers
             status_text = f"⏱ Время: {time_spent} сек\n📝 Осталось примеров: {remaining_examples}"
-
-            logger.debug(f"Current question: {num1} x {num2} = {correct_answer}")
-            logger.debug(f"Partial answer state: {game_state.partial_answer}")
 
             # If this is the first digit
             if game_state.partial_answer is None:
@@ -119,24 +118,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 logger.debug(f"Completed two-digit answer: {user_answer}")
                 game_state.partial_answer = None  # Reset for next question
 
-            logger.info(f"User {user_id} answered {user_answer} to {num1} x {num2}")
-
             if user_answer == correct_answer:
                 await play_sound("correct")
                 game_state.correct_answers += 1
                 remaining_examples = 10 - game_state.correct_answers
-                keyboard = [[InlineKeyboardButton("Продолжить", callback_data='continue')]]
+                keyboard = create_number_keyboard()
                 await query.edit_message_text(
-                    f"{status_text}\n\n✅ Правильно! Молодец!",
+                    f"{status_text}\n\n✅ Правильно! Молодец!\nНажмите любую цифру для продолжения",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
             else:
                 await play_sound("wrong")
                 game_state.errors += 1
                 game_state.last_error = (num1, num2)
-                keyboard = [[InlineKeyboardButton("Продолжить", callback_data='continue')]]
+                keyboard = create_number_keyboard()
                 await query.edit_message_text(
-                    f"{status_text}\n\n❌ Ошибка!\nЗапомни правильный ответ:\n{num1} x {num2} = {correct_answer}",
+                    f"{status_text}\n\n❌ Ошибка!\nПравильный ответ: {num1} x {num2} = {correct_answer}\nНажмите любую цифру для продолжения",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
 
