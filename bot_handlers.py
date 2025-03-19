@@ -119,6 +119,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 game_state.partial_answer = None  # Reset for next question
 
             if user_answer == correct_answer:
+                # Play success sound
                 await play_sound("correct")
                 game_state.correct_answers += 1
                 remaining_examples = 10 - game_state.correct_answers
@@ -128,6 +129,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
             else:
+                # Play error sound
                 await play_sound("wrong")
                 game_state.errors += 1
                 game_state.last_error = (num1, num2)
