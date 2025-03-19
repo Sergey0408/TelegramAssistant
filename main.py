@@ -13,18 +13,20 @@ from user_state import UserState
 # Create Flask app
 app = Flask(__name__)
 
+
 @app.route('/')
 def index():
-    return 'Telegram Bot is running!'
+    return 'Telegram Bot is running!!'
+
 
 # Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.DEBUG
-)
+    level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 application = None
+
 
 def signal_handler(signum, frame):
     """Handle shutdown signals gracefully."""
@@ -36,13 +38,16 @@ def signal_handler(signum, frame):
             logger.error(f"Error during cleanup: {e}", exc_info=True)
     logger.info("Cleanup complete")
 
+
 async def run_bot():
     """Start the bot."""
     global application
 
     try:
         # Create the Application
-        token = os.environ.get("TELEGRAM_BOT_TOKEN", "7606023414:AAE28ed3M7FRBz_kV0fwbN-gsdAef0Xfw4U")
+        token = os.environ.get(
+            "TELEGRAM_BOT_TOKEN",
+            "7606023414:AAE28ed3M7FRBz_kV0fwbN-gsdAef0Xfw4U")
         logger.info("Initializing bot with token...")
 
         # Build application
@@ -77,11 +82,11 @@ async def run_bot():
         logger.info("Starting bot polling...")
         await application.run_polling(
             allowed_updates=["message", "callback_query"],
-            drop_pending_updates=True
-        )
+            drop_pending_updates=True)
     except Exception as e:
         logger.error(f"Failed to start bot: {e}", exc_info=True)
         raise
+
 
 def run_flask():
     """Run Flask in a separate thread."""
@@ -90,6 +95,7 @@ def run_flask():
     logger.info(f"Starting Flask application on port {PORT}")
     # Run Flask without debug mode and reloader to avoid multiple bot instances
     app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
+
 
 if __name__ == '__main__':
     try:
